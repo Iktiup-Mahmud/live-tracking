@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+      integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <title>🛰️ NeoTracker | Real-time Device Tracking</title>
+  </head>
+  <body>
+    <!-- Background Animation -->
+    <div class="bg-animation">
+      <div class="grid-overlay"></div>
+      <div class="floating-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <i class="fas fa-satellite-dish"></i>
+        <span class="logo-text">NeoTracker</span>
+      </div>
+      <div class="header-stats">
+        <div class="stat-item">
+          <span class="stat-label">STATUS</span>
+          <div id="connection-status" class="status-indicator">
+            <div class="pulse-ring"></div>
+            <span class="status-text">INITIALIZING</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="panel data-panel">
+          <div class="panel-header">
+            <i class="fas fa-location-dot"></i>
+            <h3>LOCATION DATA</h3>
+          </div>
+          <div class="panel-content">
+            <div id="location-info" class="location-display">
+              <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Acquiring GPS Signal...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel control-panel">
+          <div class="panel-header">
+            <i class="fas fa-sliders-h"></i>
+            <h3>CONTROLS</h3>
+          </div>
+          <div class="panel-content">
+            <div class="control-grid">
+              <button id="toggle-tracking" class="cyber-btn primary">
+                <i class="fas fa-play"></i>
+                <span>START TRACKING</span>
+              </button>
+              <button id="center-map" class="cyber-btn secondary">
+                <i class="fas fa-crosshairs"></i>
+                <span>CENTER VIEW</span>
+              </button>
+              <button id="toggle-trail" class="cyber-btn secondary">
+                <i class="fas fa-route"></i>
+                <span>SHOW TRAIL</span>
+              </button>
+              <button id="satellite-view" class="cyber-btn secondary">
+                <i class="fas fa-satellite"></i>
+                <span>SATELLITE</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel stats-panel">
+          <div class="panel-header">
+            <i class="fas fa-chart-line"></i>
+            <h3>ANALYTICS</h3>
+          </div>
+          <div class="panel-content">
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-value" id="accuracy-stat">--</div>
+                <div class="stat-label">ACCURACY (M)</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value" id="speed-stat">--</div>
+                <div class="stat-label">SPEED (KM/H)</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value" id="altitude-stat">--</div>
+                <div class="stat-label">ALTITUDE (M)</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value" id="updates-stat">0</div>
+                <div class="stat-label">UPDATES</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Map Container -->
+      <main class="map-container">
+        <div class="map-header">
+          <div class="map-title">
+            <i class="fas fa-globe"></i>
+            <span>REAL-TIME TRACKING INTERFACE</span>
+          </div>
+          <div class="map-coords">
+            <span id="current-coords">Coordinates: Acquiring...</span>
+          </div>
+        </div>
+        <div id="map" class="cyber-map"></div>
+        <div class="map-overlay">
+          <div class="compass">
+            <div class="compass-needle" id="compass-needle"></div>
+            <div class="compass-labels">
+              <span class="n">N</span>
+              <span class="e">E</span>
+              <span class="s">S</span>
+              <span class="w">W</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Scripts -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script
+      src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+      integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+      crossorigin="anonymous"
+    ></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

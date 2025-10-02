@@ -1,0 +1,160 @@
+/* Simple Device Tracking CSS */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: #1a1a1a;
+    color: #ffffff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: #2d2d2d;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #00ffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ffff;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pulse-ring {
+    width: 12px;
+    height: 12px;
+    background: #00ff88;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.status-text {
+    color: #00ffff;
+    font-weight: bold;
+}
+
+.main-container {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 80px);
+}
+
+.sidebar {
+    width: 300px;
+    background: #2d2d2d;
+    border-right: 2px solid #00ffff;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.panel {
+    background: #3d3d3d;
+    border: 1px solid #555;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.panel h3 {
+    color: #00ffff;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #555;
+    padding-bottom: 0.5rem;
+}
+
+.control-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.track-btn {
+    background: #00ff88;
+    color: #000;
+    border: none;
+    padding: 1rem;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.track-btn:hover {
+    background: #00cc66;
+    transform: translateY(-2px);
+}
+
+.coordinates {
+    background: #1a1a1a;
+    border: 1px solid #555;
+    border-radius: 5px;
+    padding: 1rem;
+}
+
+.coordinates div {
+    margin-bottom: 0.5rem;
+    color: #ccc;
+}
+
+.map-container {
+    flex: 1;
+    position: relative;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        height: 200px;
+    }
+    
+    .header {
+        padding: 0.5rem 1rem;
+    }
+    
+    .logo {
+        font-size: 1.2rem;
+    }
+}
+
+/* Leaflet popup styling */
+.leaflet-popup-content {
+    color: #333;
+}
+
+.leaflet-container {
+    background: #1a1a1a;
+}
