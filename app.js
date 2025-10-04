@@ -2,9 +2,13 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { Server } from "socket.io";
+import dotenv from "dotenv";
+
+// Load environment variables from .env file
+dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 const server = createServer(app);
 const io = new Server(server);
@@ -18,15 +22,30 @@ app.use(express.static(path.join(path.resolve(), "public")));
 // Environmental Data Service
 class EnvironmentalService {
     constructor() {
-        // You can add your API keys here
+        // Use environment variables for API keys (secure for GitHub)
         this.weatherApiKey = process.env.OPENWEATHER_API_KEY || 'your_openweather_api_key';
         this.airQualityApiKey = process.env.AIRQUALITY_API_KEY || 'your_airquality_api_key';
+        
+        // Validate API key format
+        this.validateApiKey();
+    }
+
+    validateApiKey() {
+        console.log('🔑 Weather API Key configured:', this.weatherApiKey.substring(0, 8) + '...');
+        
+        if (this.weatherApiKey === 'your_actual_api_key_here') {
+            console.log('⚠️ Please configure your real OpenWeatherMap API key');
+        } else if (this.weatherApiKey.length !== 32) {
+            console.log('⚠️ Warning: OpenWeatherMap API keys are typically 32 characters long');
+        } else {
+            console.log('✅ API key format looks correct');
+        }
     }
 
     async getWeatherData(lat, lng) {
         try {
             // Check if we have a valid API key
-            if (this.weatherApiKey === 'your_openweather_api_key') {
+            if (this.weatherApiKey === 'your_actual_api_key_here') {
                 console.log('🌡️ Using mock weather data (no API key configured)');
                 return this.getMockWeatherData();
             }
@@ -39,13 +58,36 @@ class EnvironmentalService {
             
             // OpenWeatherMap API call
             const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${this.weatherApiKey}&units=metric`;
+            console.log('🌐 Calling weather API for coordinates:', lat, lng);
+            
             const response = await fetch(weatherUrl);
             
             if (!response.ok) {
-                throw new Error(`Weather API error: ${response.status}`);
+                if (response.status === 401) {
+                    console.error('❌ Weather API 401 Error: Invalid API key or key not activated yet');
+                    console.log('💡 Solutions:');
+                    console.log('   1. Wait 10-15 minutes for new API key activation');
+                    console.log('   2. Verify your email in OpenWeatherMap account');
+                    console.log('   3. Check API key at: https://home.openweathermap.org/api_keys');
+                    console.log('   4. Create a new API key if needed');
+                    console.log('🔄 Falling back to mock weather data for now...');
+                } else if (response.status === 429) {
+                    console.error('❌ Weather API 429 Error: Rate limit exceeded');
+                } else {
+                    console.error(`❌ Weather API ${response.status} Error:`, await response.text());
+                }
+                
+                // Fall back to mock data instead of throwing error
+                console.log('🌡️ Using mock weather data due to API error');
+                return this.getMockWeatherData();
             }
             
             const data = await response.json();
+            console.log('✅ Real weather data received:', {
+                temp: data.main.temp,
+                humidity: data.main.humidity,
+                location: data.name
+            });
             
             return {
                 temperature: Math.round(data.main.temp),
@@ -57,6 +99,7 @@ class EnvironmentalService {
             };
         } catch (error) {
             console.error('Weather API error:', error);
+            console.log('🌡️ Using mock weather data due to error');
             return this.getMockWeatherData();
         }
     }

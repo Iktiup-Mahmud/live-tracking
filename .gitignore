@@ -2,12 +2,15 @@
 node_modules/
 npm-debug.log*
 
+# Environment variables (IMPORTANT: Never commit API keys!)
+.env
+.env.local
+.env.development
+.env.production
+
 # Logs
 logs/
 *.log
-
-# Environment variables
-.env
 
 # Build output
 dist/
