@@ -15,6 +15,97 @@ app.set("view engine", "ejs");
 // Serve static files from public directory
 app.use(express.static(path.join(path.resolve(), "public")));
 
+// Environmental Data Service
+class EnvironmentalService {
+    constructor() {
+        // You can add your API keys here
+        this.weatherApiKey = process.env.OPENWEATHER_API_KEY || 'your_openweather_api_key';
+        this.airQualityApiKey = process.env.AIRQUALITY_API_KEY || 'your_airquality_api_key';
+    }
+
+    async getWeatherData(lat, lng) {
+        try {
+            // Check if we have a valid API key
+            if (this.weatherApiKey === 'your_openweather_api_key') {
+                console.log('🌡️ Using mock weather data (no API key configured)');
+                return this.getMockWeatherData();
+            }
+
+            // For Node.js environments that don't have fetch built-in
+            if (typeof fetch === 'undefined') {
+                console.log('🌡️ Fetch not available, using mock weather data');
+                return this.getMockWeatherData();
+            }
+            
+            // OpenWeatherMap API call
+            const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${this.weatherApiKey}&units=metric`;
+            const response = await fetch(weatherUrl);
+            
+            if (!response.ok) {
+                throw new Error(`Weather API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            return {
+                temperature: Math.round(data.main.temp),
+                humidity: data.main.humidity,
+                pressure: data.main.pressure,
+                windSpeed: Math.round(data.wind?.speed * 3.6) || 0, // Convert m/s to km/h
+                visibility: Math.round((data.visibility || 10000) / 1000), // Convert to km
+                uvIndex: 0 // Would need additional API call for UV
+            };
+        } catch (error) {
+            console.error('Weather API error:', error);
+            return this.getMockWeatherData();
+        }
+    }
+
+    async getAirQualityData(lat, lng) {
+        try {
+            // Air Quality API call (you can use various services)
+            // For demo, returning mock data
+            return this.getMockAirQualityData();
+        } catch (error) {
+            console.error('Air Quality API error:', error);
+            return this.getMockAirQualityData();
+        }
+    }
+
+    getMockWeatherData() {
+        return {
+            temperature: Math.round(15 + Math.random() * 20), // 15-35°C
+            humidity: Math.round(40 + Math.random() * 40), // 40-80%
+            pressure: Math.round(1000 + Math.random() * 50), // 1000-1050 hPa
+            windSpeed: Math.round(Math.random() * 25), // 0-25 km/h
+            visibility: Math.round(5 + Math.random() * 15), // 5-20 km
+            uvIndex: Math.round(Math.random() * 11) // 0-11
+        };
+    }
+
+    getMockAirQualityData() {
+        const aqiLevels = ['Good', 'Moderate', 'Unhealthy for Sensitive', 'Unhealthy', 'Very Unhealthy'];
+        return {
+            aqi: aqiLevels[Math.floor(Math.random() * aqiLevels.length)],
+            pm25: Math.round(10 + Math.random() * 50),
+            pm10: Math.round(20 + Math.random() * 80)
+        };
+    }
+
+    async getEnvironmentalData(lat, lng) {
+        const weather = await this.getWeatherData(lat, lng);
+        const airQuality = await this.getAirQualityData(lat, lng);
+        
+        return {
+            ...weather,
+            airQuality: airQuality.aqi,
+            timestamp: new Date().toISOString()
+        };
+    }
+}
+
+const environmentalService = new EnvironmentalService();
+
 
 
 app.get("/", (req, res) => 
@@ -25,18 +116,60 @@ app.get("/", (req, res) =>
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
     
-    // Handle location updates
-    socket.on('locationUpdate', (locationData) => {
+    // Handle location updates with environmental data
+    socket.on('locationUpdate', async (locationData) => {
         console.log('Location update received:', locationData);
         
-        // Broadcast location to all connected clients
-        socket.broadcast.emit('user-location-update', {
-            socketId: socket.id,
-            ...locationData
-        });
-        
-        // Send acknowledgment back to sender
-        socket.emit('location-received', { status: 'success', timestamp: new Date() });
+        try {
+            // Get environmental data for this location
+            const environmentalData = await environmentalService.getEnvironmentalData(
+                locationData.latitude, 
+                locationData.longitude
+            );
+            
+            // Combine location and environmental data
+            const enhancedLocationData = {
+                ...locationData,
+                environmental: environmentalData
+            };
+            
+            // Broadcast enhanced location to all connected clients
+            socket.broadcast.emit('user-location-update', {
+                socketId: socket.id,
+                ...enhancedLocationData
+            });
+            
+            // Send environmental data back to sender
+            socket.emit('environmental-data', environmentalData);
+            
+            // Send acknowledgment back to sender
+            socket.emit('location-received', { 
+                status: 'success', 
+                timestamp: new Date(),
+                environmental: environmentalData
+            });
+            
+        } catch (error) {
+            console.error('Error processing location update:', error);
+            socket.emit('location-received', { 
+                status: 'error', 
+                message: 'Failed to get environmental data' 
+            });
+        }
+    });
+
+    // Handle manual environmental data requests
+    socket.on('request-environmental-data', async (coordinates) => {
+        try {
+            const environmentalData = await environmentalService.getEnvironmentalData(
+                coordinates.latitude, 
+                coordinates.longitude
+            );
+            socket.emit('environmental-data', environmentalData);
+        } catch (error) {
+            console.error('Error fetching environmental data:', error);
+            socket.emit('environmental-data-error', { message: 'Failed to fetch environmental data' });
+        }
     });
     
     // Handle device connection

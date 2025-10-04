@@ -1,7 +1,6 @@
-// Lightning Tracker - Enhanced Version with Debugging
 class LightningTracker {
     constructor() {
-        console.log('🚀 Lightning Tracker initializing...');
+        console.log("🚀 Seyam's Tracker initializing...");
         
         // Initialize properties
         this.socket = null;
@@ -10,6 +9,30 @@ class LightningTracker {
         this.isTracking = false;
         this.watchId = null;
         this.updateCount = 0;
+        this.startTime = null;
+        this.totalDistance = 0;
+        this.maxSpeed = 0;
+        this.lastPosition = null;
+        this.trail = [];
+        this.trailPolyline = null;
+        this.showTrail = false;
+        this.speedMode = false;
+        this.isSatelliteView = false;
+        this.standardLayer = null;
+        this.satelliteLayer = null;
+        
+        // Environmental data properties
+        this.environmentalData = {
+            temperature: null,
+            humidity: null,
+            windSpeed: null,
+            visibility: null,
+            airQuality: null,
+            pressure: null,
+            uvIndex: null,
+            lastUpdated: null
+        };
+        this.environmentalUpdateInterval = null;
         
         // Wait for all dependencies to load
         this.waitForDependencies().then(() => {
@@ -91,34 +114,51 @@ class LightningTracker {
             
             console.log('✅ Leaflet map object created');
             
-            // Add tile layer with comprehensive error handling
-            const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Add standard tile layer
+            this.standardLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19,
                 errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
             });
             
+            // Add satellite tile layer
+            this.satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: 19
+            });
+            
+            // Add standard layer by default
+            this.standardLayer.addTo(this.map);
+            
             // Tile loading events
-            tileLayer.on('loading', () => {
+            this.standardLayer.on('loading', () => {
                 console.log('🔄 Map tiles loading...');
             });
             
-            tileLayer.on('load', () => {
+            this.standardLayer.on('load', () => {
                 console.log('✅ Map tiles loaded successfully');
             });
             
-            tileLayer.on('tileerror', (e) => {
+            this.standardLayer.on('tileerror', (e) => {
                 console.error('❌ Tile loading error:', e);
             });
             
-            // Add tile layer to map
-            tileLayer.addTo(this.map);
+            // Add satellite layer events
+            this.satelliteLayer.on('tileerror', (e) => {
+                console.error('❌ Satellite tile loading error:', e);
+            });
             
             // Force map to recognize its container size
             setTimeout(() => {
                 this.map.invalidateSize();
                 console.log('🔄 Map size invalidated and refreshed');
             }, 100);
+            
+            // Additional resize after a longer delay to ensure full layout
+            setTimeout(() => {
+                this.map.invalidateSize();
+                console.log('🔄 Secondary map resize completed');
+            }, 500);
             
             // Add a test marker to verify map is working
             this.addTestMarker();
@@ -154,7 +194,7 @@ class LightningTracker {
                 .addTo(this.map)
                 .bindPopup(`
                     <div style="text-align: center;">
-                        <h4>🎯 Lightning Tracker</h4>
+                        <h4>🎯 Seyam's Tracker</h4>
                         <p>Map is working correctly!</p>
                         <small>Dhaka, Bangladesh</small>
                     </div>
@@ -191,6 +231,52 @@ class LightningTracker {
             console.warn('⚠️ Track button not found');
         }
 
+        // Satellite button
+        const satelliteBtn = document.querySelector('.satellite-btn');
+        if (satelliteBtn) {
+            satelliteBtn.addEventListener('click', () => this.toggleSatelliteView());
+            console.log('✅ Satellite button event listener added');
+        } else {
+            console.warn('⚠️ Satellite button not found');
+        }
+
+        // Trail button
+        const trailBtn = document.querySelector('.trail-btn');
+        if (trailBtn) {
+            trailBtn.addEventListener('click', () => this.toggleTrail());
+            console.log('✅ Trail button event listener added');
+        } else {
+            console.warn('⚠️ Trail button not found');
+        }
+
+        // Speed button
+        const speedBtn = document.querySelector('.speed-btn');
+        if (speedBtn) {
+            speedBtn.addEventListener('click', () => this.toggleSpeedMode());
+            console.log('✅ Speed button event listener added');
+        } else {
+            console.warn('⚠️ Speed button not found');
+        }
+
+        // Floating control buttons
+        const centerBtn = document.querySelector('#center-btn');
+        if (centerBtn) {
+            centerBtn.addEventListener('click', () => this.centerOnUser());
+            console.log('✅ Center button event listener added');
+        }
+
+        const fullscreenBtn = document.querySelector('#fullscreen-btn');
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+            console.log('✅ Fullscreen button event listener added');
+        }
+
+        const screenshotBtn = document.querySelector('#screenshot-btn');
+        if (screenshotBtn) {
+            screenshotBtn.addEventListener('click', () => this.takeScreenshot());
+            console.log('✅ Screenshot button event listener added');
+        }
+
         // Socket events
         if (this.socket) {
             this.socket.on('connect', () => {
@@ -206,19 +292,86 @@ class LightningTracker {
             this.socket.on('error', (error) => {
                 console.error('❌ Socket error:', error);
             });
+
+            // Environmental data handlers
+            this.socket.on('environmental-data', (data) => {
+                try {
+                    console.log('🌡️ Environmental data received:', data);
+                    this.updateEnvironmentalData(data);
+                } catch (error) {
+                    console.error('❌ Error processing environmental data:', error);
+                }
+            });
+
+            this.socket.on('environmental-data-error', (error) => {
+                console.error('❌ Environmental data error:', error);
+                this.showNotification('Failed to get environmental data', 'error');
+            });
+
+            this.socket.on('location-received', (response) => {
+                try {
+                    if (response.environmental) {
+                        this.updateEnvironmentalData(response.environmental);
+                    }
+                } catch (error) {
+                    console.error('❌ Error processing location response:', error);
+                }
+            });
         }
+        
+        // Add window resize handler
+        window.addEventListener('resize', () => {
+            if (this.map) {
+                setTimeout(() => {
+                    this.map.invalidateSize();
+                    console.log('🔄 Map resized on window resize');
+                }, 100);
+            }
+        });
+
+        // Add cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            this.cleanup();
+        });
         
         console.log('✅ Event listeners setup completed');
     }
 
+    cleanup() {
+        console.log("🧹 Cleaning up Seyam's Tracker...");
+        
+        // Stop tracking
+        if (this.isTracking) {
+            this.stopTracking();
+        }
+        
+        // Clear environmental updates
+        this.stopEnvironmentalUpdates();
+        
+        // Close socket connection
+        if (this.socket) {
+            this.socket.disconnect();
+        }
+        
+        console.log('✅ Cleanup completed');
+    }
+
     startTracking() {
         if (!navigator.geolocation) {
-            alert('Geolocation not supported');
+            this.showNotification('❌ Geolocation not supported by this browser', 'error');
             return;
         }
 
         this.isTracking = true;
-        this.updateStatus('TRACKING...');
+        this.startTime = Date.now();
+        this.updateCount = 0;
+        this.totalDistance = 0;
+        this.maxSpeed = 0;
+        this.trail = [];
+        this.lastPosition = null;
+        
+        this.updateStatus('INITIALIZING GPS...');
+        this.updateButton('.track-btn', '<i class="fas fa-stop"></i> STOP TRACKING', 'active');
         
         const options = {
             enableHighAccuracy: true,
@@ -226,50 +379,130 @@ class LightningTracker {
             maximumAge: 10000
         };
 
-        this.watchId = navigator.geolocation.watchPosition(
-            (position) => this.handleLocationUpdate(position),
-            (error) => this.handleLocationError(error),
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log('✅ Initial position acquired');
+                this.handleLocationUpdate(position);
+                
+                // Start watching position
+                this.watchId = navigator.geolocation.watchPosition(
+                    (position) => this.handleLocationUpdate(position),
+                    (error) => this.handleLocationError(error),
+                    options
+                );
+                
+                this.updateStatus('TRACKING ACTIVE');
+                this.showNotification('⚡ GPS tracking activated!', 'success');
+                
+                // Start environmental data updates
+                this.startEnvironmentalUpdates();
+            },
+            (error) => {
+                console.error('❌ Initial position error:', error);
+                this.handleLocationError(error);
+            },
             options
         );
-
-        const btn = document.querySelector('.track-btn');
-        if (btn) btn.innerHTML = '<i class="fas fa-stop"></i> STOP TRACKING';
     }
 
     stopTracking() {
+        this.isTracking = false;
+        
         if (this.watchId) {
             navigator.geolocation.clearWatch(this.watchId);
             this.watchId = null;
         }
         
-        this.isTracking = false;
-        this.updateStatus('READY');
+        this.updateStatus('TRACKING STOPPED');
+        this.updateButton('.track-btn', '<i class="fas fa-play"></i> START TRACKING', '');
+        this.showNotification('🛑 Tracking stopped', 'info');
         
-        const btn = document.querySelector('.track-btn');
-        if (btn) btn.innerHTML = '<i class="fas fa-play"></i> START TRACKING';
+        // Stop environmental updates
+        this.stopEnvironmentalUpdates();
+        
+        console.log('📍 Tracking stopped. Total updates:', this.updateCount);
     }
 
     handleLocationUpdate(position) {
-        console.log('Location update:', position.coords);
+        console.log('📍 Location update received:', position.coords);
         
-        const { latitude, longitude, accuracy, speed } = position.coords;
-        
-        this.updateMap(latitude, longitude);
-        this.updateDisplay(latitude, longitude, accuracy, speed);
         this.updateCount++;
+        const { latitude, longitude, accuracy, speed, altitude } = position.coords;
         
-        this.socket.emit('locationUpdate', {
-            latitude,
-            longitude,
-            accuracy,
-            speed,
-            timestamp: Date.now()
-        });
+        // Calculate distance if we have a previous position
+        if (this.lastPosition) {
+            const distance = this.calculateDistance(this.lastPosition, [latitude, longitude]);
+            this.totalDistance += distance;
+        }
+        
+        // Update maximum speed
+        if (speed && speed > this.maxSpeed) {
+            this.maxSpeed = speed;
+        }
+        
+        // Update map and displays
+        this.updateMap(latitude, longitude);
+        this.updateDisplay(latitude, longitude, accuracy, speed, altitude);
+        this.updateStatistics();
+        
+        // Add to trail if enabled
+        if (this.showTrail) {
+            this.addToTrail([latitude, longitude]);
+        }
+        
+        // Store current position for distance calculation
+        this.lastPosition = [latitude, longitude];
+        
+        // Send to server
+        if (this.socket) {
+            this.socket.emit('locationUpdate', {
+                latitude,
+                longitude,
+                accuracy,
+                speed,
+                altitude,
+                timestamp: Date.now()
+            });
+        }
+        
+        // Show speed notification in speed mode
+        if (this.speedMode && speed) {
+            this.showNotification(`⚡ Speed: ${(speed * 3.6).toFixed(1)} km/h`, 'info');
+        }
     }
 
     handleLocationError(error) {
         console.error('Location error:', error);
-        this.updateStatus('GPS ERROR');
+        
+        let errorMessage = 'GPS ERROR';
+        let notificationMessage = '❌ Location error occurred';
+        
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = 'PERMISSION DENIED';
+                notificationMessage = '❌ Location access denied. Please enable location permissions.';
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = 'POSITION UNAVAILABLE';
+                notificationMessage = '❌ Location information unavailable.';
+                break;
+            case error.TIMEOUT:
+                errorMessage = 'TIMEOUT';
+                notificationMessage = '❌ Location request timed out.';
+                break;
+            default:
+                errorMessage = 'GPS ERROR';
+                notificationMessage = `❌ Location error: ${error.message}`;
+                break;
+        }
+        
+        this.updateStatus(errorMessage);
+        this.showNotification(notificationMessage, 'error');
+        
+        // Reset tracking state
+        this.isTracking = false;
+        this.updateButton('.track-btn', '<i class="fas fa-play"></i> START TRACKING', '');
+        this.stopEnvironmentalUpdates();
     }
 
     updateMap(lat, lng) {
@@ -284,12 +517,158 @@ class LightningTracker {
         this.map.setView(newPos, 16);
     }
 
-    updateDisplay(lat, lng, accuracy, speed) {
+    updateDisplay(lat, lng, accuracy, speed, altitude) {
         this.updateElement('#lat-value', lat.toFixed(8));
         this.updateElement('#lng-value', lng.toFixed(8));
-        this.updateElement('#accuracy', accuracy ? accuracy.toFixed(0) + 'm' : '--');
-        this.updateElement('#speed-value', speed ? (speed * 3.6).toFixed(1) + ' km/h' : '--');
+        this.updateElement('#alt-value', altitude ? altitude.toFixed(0) + 'm' : '--');
+        this.updateElement('#speed-value', speed ? (speed * 3.6).toFixed(1) + ' km/h' : '-- km/h');
+        this.updateElement('#accuracy', accuracy ? accuracy.toFixed(0) + 'm' : '--m');
+    }
+
+    updateStatistics() {
         this.updateElement('#updates-count', this.updateCount);
+        this.updateElement('#total-distance', (this.totalDistance * 1000).toFixed(0) + 'm');
+        this.updateElement('#max-speed', (this.maxSpeed * 3.6).toFixed(1) + ' km/h');
+        
+        if (this.startTime) {
+            const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            this.updateElement('#session-time', `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        }
+    }
+
+    calculateDistance(pos1, pos2) {
+        const R = 6371; // Earth's radius in kilometers
+        const dLat = this.toRad(pos2[0] - pos1[0]);
+        const dLng = this.toRad(pos2[1] - pos1[1]);
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(this.toRad(pos1[0])) * Math.cos(this.toRad(pos2[0])) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    toRad(degrees) {
+        return degrees * (Math.PI/180);
+    }
+
+    toggleSatelliteView() {
+        this.isSatelliteView = !this.isSatelliteView;
+        
+        if (this.isSatelliteView) {
+            this.map.removeLayer(this.standardLayer);
+            this.satelliteLayer.addTo(this.map);
+            this.updateButton('.satellite-btn', '<i class="fas fa-map"></i> STANDARD VIEW', 'active');
+        } else {
+            this.map.removeLayer(this.satelliteLayer);
+            this.standardLayer.addTo(this.map);
+            this.updateButton('.satellite-btn', '<i class="fas fa-satellite"></i> SATELLITE VIEW', '');
+        }
+        
+        this.showNotification(`🛰️ Switched to ${this.isSatelliteView ? 'satellite' : 'standard'} view`, 'info');
+    }
+
+    toggleTrail() {
+        this.showTrail = !this.showTrail;
+        
+        if (!this.showTrail && this.trailPolyline) {
+            this.map.removeLayer(this.trailPolyline);
+            this.trail = [];
+        }
+        
+        const btnText = this.showTrail ? '<i class="fas fa-eye-slash"></i> HIDE TRAIL' : '<i class="fas fa-route"></i> SHOW TRAIL';
+        this.updateButton('.trail-btn', btnText, this.showTrail ? 'active' : '');
+        this.showNotification(`🛤️ Trail ${this.showTrail ? 'enabled' : 'disabled'}`, 'info');
+    }
+
+    toggleSpeedMode() {
+        this.speedMode = !this.speedMode;
+        const btnText = this.speedMode ? '<i class="fas fa-tachometer-alt"></i> NORMAL MODE' : '<i class="fas fa-tachometer-alt"></i> SPEED MODE';
+        this.updateButton('.speed-btn', btnText, this.speedMode ? 'active' : '');
+        this.showNotification(`🏎️ Speed mode ${this.speedMode ? 'enabled' : 'disabled'}`, 'info');
+    }
+
+    addToTrail(latLng) {
+        this.trail.push(latLng);
+        
+        // Keep only last 500 points to prevent memory issues
+        if (this.trail.length > 500) {
+            this.trail = this.trail.slice(-500);
+        }
+
+        if (this.trailPolyline) {
+            this.map.removeLayer(this.trailPolyline);
+        }
+
+        this.trailPolyline = L.polyline(this.trail, {
+            color: '#ffb347',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '5, 5'
+        }).addTo(this.map);
+    }
+
+    centerOnUser() {
+        if (this.marker && this.map) {
+            const position = this.marker.getLatLng();
+            this.map.setView(position, 18, { animate: true, duration: 1.5 });
+            this.showNotification('🎯 Centered on your location', 'info');
+        } else {
+            this.showNotification('❌ No location available', 'warning');
+        }
+    }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            this.showNotification('🔲 Entered fullscreen mode', 'info');
+        } else {
+            document.exitFullscreen();
+            this.showNotification('🔳 Exited fullscreen mode', 'info');
+        }
+    }
+
+    takeScreenshot() {
+        this.showNotification('📸 Screenshot feature coming soon!', 'info');
+    }
+
+    updateButton(selector, html, activeClass) {
+        const button = document.querySelector(selector);
+        if (button) {
+            button.innerHTML = html;
+            if (activeClass) {
+                button.classList.add(activeClass);
+            } else {
+                button.classList.remove('active');
+            }
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        console.log(`${type.toUpperCase()}: ${message}`);
+        
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `<i class="fas fa-${this.getNotificationIcon(type)}"></i><span>${message}</span>`;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.classList.add('show'), 100);
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    getNotificationIcon(type) {
+        const icons = {
+            success: 'check-circle',
+            error: 'exclamation-circle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle'
+        };
+        return icons[type] || 'info-circle';
     }
 
     updateElement(selector, value) {
@@ -301,6 +680,118 @@ class LightningTracker {
 
     updateStatus(status) {
         this.updateElement('.status-text', status);
+    }
+
+    // Environmental Data Methods
+    updateEnvironmentalData(data) {
+        console.log('🌡️ Updating environmental display:', data);
+        
+        // Store the data
+        this.environmentalData = {
+            ...this.environmentalData,
+            ...data,
+            lastUpdated: new Date()
+        };
+        
+        // Update UI elements
+        this.updateElement('#temperature', `${data.temperature || '--'}°C`);
+        this.updateElement('#humidity', `${data.humidity || '--'}%`);
+        this.updateElement('#wind-speed', `${data.windSpeed || '--'} km/h`);
+        this.updateElement('#visibility', `${data.visibility || '--'} km`);
+        this.updateElement('#air-quality', data.airQuality || '--');
+        this.updateElement('#pressure', `${data.pressure || '--'} hPa`);
+        this.updateElement('#uv-index', data.uvIndex || '--');
+        
+        // Update weather item styling based on values
+        this.updateEnvironmentalStyling(data);
+        
+        // Show notification for significant changes
+        if (this.shouldNotifyEnvironmentalChange(data)) {
+            this.showNotification(`🌡️ Environmental update: ${data.temperature}°C, ${data.airQuality} air quality`, 'info');
+        }
+    }
+    
+    updateEnvironmentalStyling(data) {
+        // Temperature color coding
+        const tempElement = document.querySelector('#temperature');
+        if (tempElement && data.temperature) {
+            const temp = data.temperature;
+            if (temp < 0) tempElement.style.color = '#64b5f6'; // Cold - Blue
+            else if (temp < 15) tempElement.style.color = '#81c784'; // Cool - Green
+            else if (temp < 25) tempElement.style.color = '#ffb74d'; // Warm - Orange
+            else tempElement.style.color = '#e57373'; // Hot - Red
+        }
+        
+        // Air quality color coding
+        const aqElement = document.querySelector('#air-quality');
+        if (aqElement && data.airQuality) {
+            const aqi = data.airQuality.toLowerCase();
+            if (aqi.includes('good')) aqElement.style.color = '#81c784';
+            else if (aqi.includes('moderate')) aqElement.style.color = '#ffb74d';
+            else if (aqi.includes('unhealthy')) aqElement.style.color = '#e57373';
+            else aqElement.style.color = '#ba68c8';
+        }
+        
+        // Wind speed indication
+        const windElement = document.querySelector('#wind-speed');
+        if (windElement && data.windSpeed) {
+            const wind = data.windSpeed;
+            if (wind < 10) windElement.style.color = '#81c784'; // Calm
+            else if (wind < 25) windElement.style.color = '#ffb74d'; // Breezy
+            else windElement.style.color = '#e57373'; // Windy
+        }
+    }
+    
+    shouldNotifyEnvironmentalChange(newData) {
+        if (!this.environmentalData.lastUpdated) return true; // First update
+        
+        // Check for significant temperature change (>5°C)
+        if (Math.abs((newData.temperature || 0) - (this.environmentalData.temperature || 0)) > 5) {
+            return true;
+        }
+        
+        // Check for air quality change
+        if (newData.airQuality !== this.environmentalData.airQuality) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    requestEnvironmentalData(lat, lng) {
+        if (this.socket && lat && lng) {
+            console.log('🌡️ Requesting environmental data for:', lat, lng);
+            this.socket.emit('request-environmental-data', { 
+                latitude: lat, 
+                longitude: lng 
+            });
+        }
+    }
+    
+    startEnvironmentalUpdates() {
+        // Update environmental data every 5 minutes
+        if (this.environmentalUpdateInterval) {
+            clearInterval(this.environmentalUpdateInterval);
+        }
+        
+        this.environmentalUpdateInterval = setInterval(() => {
+            if (this.lastPosition && this.isTracking) {
+                this.requestEnvironmentalData(
+                    this.lastPosition[0], // latitude
+                    this.lastPosition[1]  // longitude
+                );
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+        
+        console.log('🌡️ Environmental updates started (5-minute interval)');
+    }
+    
+    stopEnvironmentalUpdates() {
+        if (this.environmentalUpdateInterval) {
+            clearInterval(this.environmentalUpdateInterval);
+            this.environmentalUpdateInterval = null;
+            console.log('🌡️ Environmental updates stopped');
+        }
     }
 
     initInterface() {

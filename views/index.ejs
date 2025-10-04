@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>⚡ Yellow Lightning Tracker</title>
+    <title>Seyam's Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -24,7 +24,7 @@
     <header class="header">
       <div class="logo">
         <i class="fas fa-bolt"></i>
-        Lightning Tracker
+        Seyam's Tracker
       </div>
       <div class="status-indicator">
         <div class="pulse-ring"></div>
@@ -111,17 +111,41 @@
           </div>
         </div>
 
-        <!-- Weather Panel -->
+        <!-- Environmental Data Panel -->
         <div class="panel">
           <h3><i class="fas fa-cloud-sun"></i> Environment</h3>
           <div class="weather-info">
             <div class="weather-item">
               <i class="fas fa-thermometer-half"></i>
-              <span>Temp: <span id="temperature">--°C</span></span>
+              <span>Temperature: <span id="temperature">--°C</span></span>
+            </div>
+            <div class="weather-item">
+              <i class="fas fa-tint"></i>
+              <span>Humidity: <span id="humidity">--%</span></span>
+            </div>
+            <div class="weather-item">
+              <i class="fas fa-wind"></i>
+              <span>Wind: <span id="wind-speed">-- km/h</span></span>
             </div>
             <div class="weather-item">
               <i class="fas fa-eye"></i>
-              <span>Accuracy: <span id="accuracy">--m</span></span>
+              <span>Visibility: <span id="visibility">-- km</span></span>
+            </div>
+            <div class="weather-item">
+              <i class="fas fa-smog"></i>
+              <span>Air Quality: <span id="air-quality">--</span></span>
+            </div>
+            <div class="weather-item">
+              <i class="fas fa-compress-arrows-alt"></i>
+              <span>Pressure: <span id="pressure">-- hPa</span></span>
+            </div>
+            <div class="weather-item">
+              <i class="fas fa-sun"></i>
+              <span>UV Index: <span id="uv-index">--</span></span>
+            </div>
+            <div class="weather-item">
+              <i class="fas fa-bullseye"></i>
+              <span>GPS Accuracy: <span id="accuracy">--m</span></span>
             </div>
           </div>
         </div>
