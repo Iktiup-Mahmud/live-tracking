@@ -1,54 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Device Tracker</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>⚡ Yellow Lightning Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Orbitron:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
     <header class="header">
-        <div class="logo">
-            <i class="fas fa-satellite-dish"></i>
-            Simple Tracker
+      <div class="logo">
+        <i class="fas fa-bolt"></i>
+        Lightning Tracker
+      </div>
+      <div class="status-indicator">
+        <div class="pulse-ring"></div>
+        <span class="status-text">READY</span>
+        <div class="signal-strength">
+          <i class="fas fa-signal"></i>
+          <span id="signal-bars">100%</span>
         </div>
-        <div class="status-indicator">
-            <div class="pulse-ring"></div>
-            <span class="status-text">READY</span>
-        </div>
+      </div>
     </header>
 
     <div class="main-container">
-        <aside class="sidebar">
-            <div class="panel">
-                <h3><i class="fas fa-play-circle"></i> Controls</h3>
-                <div class="control-grid">
-                    <button class="track-btn">
-                        <i class="fas fa-play"></i>
-                        START TRACKING
-                    </button>
-                </div>
-            </div>
+      <aside class="sidebar">
+        <!-- Enhanced Control Panel -->
+        <div class="panel">
+          <h3><i class="fas fa-rocket"></i> Mission Control</h3>
+          <div class="control-grid">
+            <button class="track-btn">
+              <i class="fas fa-play"></i>
+              START TRACKING
+            </button>
+            <button class="satellite-btn">
+              <i class="fas fa-satellite"></i>
+              SATELLITE VIEW
+            </button>
+            <button class="trail-btn">
+              <i class="fas fa-route"></i>
+              SHOW TRAIL
+            </button>
+            <button class="speed-btn">
+              <i class="fas fa-tachometer-alt"></i>
+              SPEED MODE
+            </button>
+          </div>
+        </div>
 
-            <div class="panel">
-                <h3><i class="fas fa-map-marker-alt"></i> Location Info</h3>
-                <div class="coordinates">
-                    <div>Latitude: --</div>
-                    <div>Longitude: --</div>
-                    <div>Updates: 0</div>
-                </div>
+        <!-- Live Data Panel -->
+        <div class="panel">
+          <h3><i class="fas fa-crosshairs"></i> Live Position</h3>
+          <div class="coordinates">
+            <div class="coord-item">
+              <span class="label">LAT:</span>
+              <span class="value" id="lat-value">--</span>
             </div>
-        </aside>
+            <div class="coord-item">
+              <span class="label">LNG:</span>
+              <span class="value" id="lng-value">--</span>
+            </div>
+            <div class="coord-item">
+              <span class="label">ALT:</span>
+              <span class="value" id="alt-value">--</span>
+            </div>
+            <div class="coord-item">
+              <span class="label">SPEED:</span>
+              <span class="value" id="speed-value">-- km/h</span>
+            </div>
+          </div>
+        </div>
 
-        <main class="map-container">
-            <div id="map"></div>
-        </main>
+        <!-- Statistics Panel -->
+        <div class="panel">
+          <h3><i class="fas fa-chart-line"></i> Statistics</h3>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <i class="fas fa-location-arrow"></i>
+              <span class="stat-label">Updates</span>
+              <span class="stat-value" id="updates-count">0</span>
+            </div>
+            <div class="stat-box">
+              <i class="fas fa-road"></i>
+              <span class="stat-label">Distance</span>
+              <span class="stat-value" id="total-distance">0m</span>
+            </div>
+            <div class="stat-box">
+              <i class="fas fa-clock"></i>
+              <span class="stat-label">Session</span>
+              <span class="stat-value" id="session-time">00:00</span>
+            </div>
+            <div class="stat-box">
+              <i class="fas fa-bolt"></i>
+              <span class="stat-label">Max Speed</span>
+              <span class="stat-value" id="max-speed">0 km/h</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weather Panel -->
+        <div class="panel">
+          <h3><i class="fas fa-cloud-sun"></i> Environment</h3>
+          <div class="weather-info">
+            <div class="weather-item">
+              <i class="fas fa-thermometer-half"></i>
+              <span>Temp: <span id="temperature">--°C</span></span>
+            </div>
+            <div class="weather-item">
+              <i class="fas fa-eye"></i>
+              <span>Accuracy: <span id="accuracy">--m</span></span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="map-container">
+        <!-- Enhanced Map with Overlay -->
+        <div class="map-wrapper">
+          <div id="map"></div>
+          <div class="map-overlay">
+            <div class="scanning-lines"></div>
+            <div class="corner-brackets">
+              <div class="bracket top-left"></div>
+              <div class="bracket top-right"></div>
+              <div class="bracket bottom-left"></div>
+              <div class="bracket bottom-right"></div>
+            </div>
+          </div>
+          <!-- Floating Control Panel -->
+          <div class="floating-controls">
+            <button class="float-btn" id="center-btn">
+              <i class="fas fa-crosshairs"></i>
+            </button>
+            <button class="float-btn" id="fullscreen-btn">
+              <i class="fas fa-expand"></i>
+            </button>
+            <button class="float-btn" id="screenshot-btn">
+              <i class="fas fa-camera"></i>
+            </button>
+          </div>
+        </div>
+      </main>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/script.js"></script>
-</body>
+  </body>
 </html>

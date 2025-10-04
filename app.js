@@ -26,7 +26,7 @@ io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
     
     // Handle location updates
-    socket.on('location-update', (locationData) => {
+    socket.on('locationUpdate', (locationData) => {
         console.log('Location update received:', locationData);
         
         // Broadcast location to all connected clients
