@@ -18,12 +18,23 @@ module.exports = async (req, res) => {
 
         // Health check endpoint
         if (pathname === '/health') {
+            let mongoStatus = 'not configured';
+            if (process.env.MONGODB_URI) {
+                try {
+                    const testAnalytics = await getAnalytics();
+                    mongoStatus = testAnalytics.error ? 'connection failed' : 'connected';
+                } catch (error) {
+                    mongoStatus = 'connection failed';
+                }
+            }
+            
             return res.status(200).json({ 
                 status: 'healthy', 
                 timestamp: new Date().toISOString(),
                 environment: process.env.NODE_ENV || 'production',
                 platform: 'vercel-serverless',
-                mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
+                mongodb: mongoStatus,
+                mongodbUri: process.env.MONGODB_URI ? 'configured' : 'not configured'
             });
         }
 
@@ -41,23 +52,11 @@ module.exports = async (req, res) => {
 
         // Analytics endpoint with real MongoDB data
         if (pathname === '/admin/analytics') {
-            try {
-                const analytics = await getAnalytics();
-                return res.status(200).json({
-                    ...analytics,
-                    platform: 'vercel-serverless',
-                    mongodb: 'connected'
-                });
-            } catch (error) {
-                return res.status(200).json({
-                    error: 'Database connection failed',
-                    totalVisits: 0,
-                    totalLocations: 0,
-                    recentVisitsCount: 0,
-                    platform: 'vercel-serverless',
-                    mongodb: 'disconnected'
-                });
-            }
+            const analytics = await getAnalytics();
+            return res.status(200).json({
+                ...analytics,
+                platform: 'vercel-serverless'
+            });
         }
 
         // Location API endpoint

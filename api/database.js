@@ -8,11 +8,21 @@ async function connectToDatabase() {
         return cachedDb;
     }
 
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    const db = client.db();
-    cachedDb = db;
-    return db;
+    if (!process.env.MONGODB_URI) {
+        throw new Error('MONGODB_URI environment variable is not configured');
+    }
+
+    try {
+        const client = new MongoClient(process.env.MONGODB_URI);
+        await client.connect();
+        const db = client.db();
+        cachedDb = db;
+        console.log('✅ MongoDB connected successfully');
+        return db;
+    } catch (error) {
+        console.error('❌ MongoDB connection failed:', error.message);
+        throw new Error(`Database connection failed: ${error.message}`);
+    }
 }
 
 async function logUserVisit(visitData) {
@@ -57,6 +67,17 @@ async function logLocationUpdate(locationData) {
 
 async function getAnalytics() {
     try {
+        if (!process.env.MONGODB_URI) {
+            return {
+                error: 'MONGODB_URI not configured',
+                totalVisits: 0,
+                totalLocations: 0,
+                recentVisitsCount: 0,
+                recentVisits: [],
+                mongodb: 'not configured'
+            };
+        }
+
         const db = await connectToDatabase();
         const visits = db.collection('user_visits');
         const locations = db.collection('location_updates');
@@ -78,16 +99,18 @@ async function getAnalytics() {
             totalLocations,
             recentVisitsCount,
             recentVisits,
-            lastUpdate: new Date().toISOString()
+            lastUpdate: new Date().toISOString(),
+            mongodb: 'connected'
         };
     } catch (error) {
         console.error('❌ Failed to get analytics:', error);
         return {
-            error: 'Failed to fetch analytics',
+            error: `Database not connected: ${error.message}`,
             totalVisits: 0,
             totalLocations: 0,
             recentVisitsCount: 0,
-            recentVisits: []
+            recentVisits: [],
+            mongodb: 'disconnected'
         };
     }
 }
