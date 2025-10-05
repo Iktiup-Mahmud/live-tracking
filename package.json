@@ -19,7 +19,6 @@
   ],
   "author": "Iktiup Mahmud",
   "license": "ISC",
-  "type": "module",
   "engines": {
     "node": ">=18.0.0"
   },

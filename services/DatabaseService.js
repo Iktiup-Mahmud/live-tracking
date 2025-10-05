@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import { UserSession, LocationTracking, UserAnalytics } from '../models/User.js';
+const mongoose = require('mongoose');
+const { UserSession, LocationTracking, UserAnalytics } = require('../models/User');
 
 class DatabaseService {
     constructor() {
@@ -312,4 +312,4 @@ class DatabaseService {
     }
 }
 
-export default new DatabaseService();
+module.exports = new DatabaseService();

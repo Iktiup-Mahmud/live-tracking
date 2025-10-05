@@ -1,9 +1,9 @@
-import express from "express";
-import { createServer } from "http";
-import path from "path";
-import { Server } from "socket.io";
-import dotenv from "dotenv";
-import DatabaseService from "./services/DatabaseService.js";
+const express = require("express");
+const { createServer } = require("http");
+const path = require("path");
+const { Server } = require("socket.io");
+const dotenv = require("dotenv");
+const DatabaseService = require("./services/DatabaseService");
 
 // Load environment variables from .env file
 dotenv.config();
@@ -360,7 +360,7 @@ io.on('connection', async (socket) => {
 });
 
 // Export for Vercel serverless functions
-export default app;
+module.exports = app;
 
 // Start server for local development
 if (process.env.NODE_ENV !== 'production') {

@@ -1,0 +1,40 @@
+# Local environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Dependencies that will be installed on Vercel
+node_modules
+
+# Development files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+DEPLOYMENT.md
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js

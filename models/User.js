@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 // User Session Schema - Tracks when users open/close the website
 const userSessionSchema = new mongoose.Schema({
@@ -148,6 +148,8 @@ locationTrackingSchema.index({ timestamp: -1 });
 // Note: userAnalyticsSchema.sessionId already has unique:true index, no need for explicit index
 
 // Export models
-export const UserSession = mongoose.model('UserSession', userSessionSchema);
-export const LocationTracking = mongoose.model('LocationTracking', locationTrackingSchema);
-export const UserAnalytics = mongoose.model('UserAnalytics', userAnalyticsSchema);
+const UserSession = mongoose.model('UserSession', userSessionSchema);
+const LocationTracking = mongoose.model('LocationTracking', locationTrackingSchema);
+const UserAnalytics = mongoose.model('UserAnalytics', userAnalyticsSchema);
+
+module.exports = { UserSession, LocationTracking, UserAnalytics };
