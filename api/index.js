@@ -15,9 +15,17 @@ module.exports = async (req, res) => {
 
         const url = new URL(req.url, `http://${req.headers.host}`);
         const pathname = url.pathname;
+        
+        // Handle Vercel routing - extract original path from query params if present
+        let actualPath = pathname;
+        if (url.searchParams.has('pathname')) {
+            actualPath = url.searchParams.get('pathname');
+        }
+        
+        console.log('Request path:', pathname, 'Actual path:', actualPath);
 
         // Health check endpoint
-        if (pathname === '/health') {
+        if (actualPath === '/health' || pathname === '/health') {
             let mongoStatus = 'not configured';
             if (process.env.MONGODB_URI) {
                 try {
@@ -34,33 +42,38 @@ module.exports = async (req, res) => {
                 environment: process.env.NODE_ENV || 'production',
                 platform: 'vercel-serverless',
                 mongodb: mongoStatus,
-                mongodbUri: process.env.MONGODB_URI ? 'configured' : 'not configured'
+                mongodbUri: process.env.MONGODB_URI ? 'configured' : 'not configured',
+                requestPath: pathname,
+                actualPath: actualPath
             });
         }
 
         // Test endpoint
-        if (pathname === '/test') {
+        if (actualPath === '/test' || pathname === '/test') {
             return res.status(200).json({
                 message: 'Server is working!',
                 timestamp: new Date().toISOString(),
                 environment: process.env.NODE_ENV,
                 platform: 'vercel',
                 path: pathname,
+                actualPath: actualPath,
                 method: req.method
             });
         }
 
         // Analytics endpoint with real MongoDB data
-        if (pathname === '/admin/analytics') {
+        if (actualPath === '/admin/analytics' || pathname === '/admin/analytics') {
             const analytics = await getAnalytics();
             return res.status(200).json({
                 ...analytics,
-                platform: 'vercel-serverless'
+                platform: 'vercel-serverless',
+                requestPath: pathname,
+                actualPath: actualPath
             });
         }
 
         // Location API endpoint
-        if (pathname === '/api/location' && req.method === 'POST') {
+        if ((actualPath === '/api/location' || pathname === '/api/location') && req.method === 'POST') {
             let body = '';
             
             // Read request body

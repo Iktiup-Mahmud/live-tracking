@@ -28,15 +28,19 @@
     },
     {
       "source": "/health",
-      "destination": "/api/index"
+      "destination": "/api/index?pathname=/health"
     },
     {
       "source": "/test",
-      "destination": "/api/index"
+      "destination": "/api/index?pathname=/test"
     },
     {
-      "source": "/admin/(.*)",
-      "destination": "/api/index"
+      "source": "/admin/analytics",
+      "destination": "/api/index?pathname=/admin/analytics"
+    },
+    {
+      "source": "/api/location",
+      "destination": "/api/index?pathname=/api/location"
     },
     {
       "source": "/api/(.*)",
