@@ -4,6 +4,9 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 30
+    },
+    "api/track.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
@@ -14,6 +17,14 @@
     {
       "source": "/diagnostics",
       "destination": "/public/diagnostics.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/public/admin.html"
+    },
+    {
+      "source": "/api/track",
+      "destination": "/api/track"
     },
     {
       "source": "/health",

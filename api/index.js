@@ -1,4 +1,6 @@
 // Simple serverless function for Vercel
+const { getAnalytics, logLocationUpdate } = require('./database');
+
 module.exports = async (req, res) => {
     try {
         // Set CORS headers
@@ -20,7 +22,8 @@ module.exports = async (req, res) => {
                 status: 'healthy', 
                 timestamp: new Date().toISOString(),
                 environment: process.env.NODE_ENV || 'production',
-                platform: 'vercel-serverless'
+                platform: 'vercel-serverless',
+                mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
             });
         }
 
@@ -36,15 +39,25 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Analytics endpoint
+        // Analytics endpoint with real MongoDB data
         if (pathname === '/admin/analytics') {
-            return res.status(200).json({
-                totalSessions: Math.floor(Math.random() * 10),
-                activeSessions: Math.floor(Math.random() * 5),
-                totalLocations: Math.floor(Math.random() * 100),
-                lastActivity: new Date().toISOString(),
-                platform: 'vercel-serverless'
-            });
+            try {
+                const analytics = await getAnalytics();
+                return res.status(200).json({
+                    ...analytics,
+                    platform: 'vercel-serverless',
+                    mongodb: 'connected'
+                });
+            } catch (error) {
+                return res.status(200).json({
+                    error: 'Database connection failed',
+                    totalVisits: 0,
+                    totalLocations: 0,
+                    recentVisitsCount: 0,
+                    platform: 'vercel-serverless',
+                    mongodb: 'disconnected'
+                });
+            }
         }
 
         // Location API endpoint
@@ -60,6 +73,17 @@ module.exports = async (req, res) => {
             try {
                 const location = JSON.parse(body);
                 console.log('Location received:', location);
+                
+                // Log location to MongoDB
+                try {
+                    await logLocationUpdate({
+                        ...location,
+                        ip: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'Unknown',
+                        userAgent: req.headers['user-agent'] || 'Unknown'
+                    });
+                } catch (dbError) {
+                    console.error('Failed to log location to DB:', dbError);
+                }
                 
                 // Mock environmental data
                 const environmentalData = {
