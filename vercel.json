@@ -1,48 +1,31 @@
 {
   "version": 2,
   "name": "realtime-device-tracking",
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/test",
-      "dest": "/api/index.js"
+      "source": "/",
+      "destination": "/public/index.html"
     },
     {
-      "src": "/health",
-      "dest": "/api/index.js"
+      "source": "/health",
+      "destination": "/api/index"
     },
     {
-      "src": "/diagnostics",
-      "dest": "/api/index.js"
+      "source": "/test",
+      "destination": "/api/index"
     },
     {
-      "src": "/admin/(.*)",
-      "dest": "/api/index.js"
+      "source": "/admin/(.*)",
+      "destination": "/api/index"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/public/(.*)",
-      "dest": "/public/$1"
-    },
-    {
-      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico))",
-      "dest": "/public/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.js"
+      "source": "/api/(.*)",
+      "destination": "/api/index"
     }
   ]
 }
