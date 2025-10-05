@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostics - Seyam's Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .diagnostics-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(0, 12, 24, 0.95);
+            border-radius: 15px;
+            margin-top: 100px;
+        }
+        .diagnostic-section {
+            background: rgba(0, 20, 40, 0.8);
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #00d4ff;
+        }
+        .diagnostic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        .diagnostic-item:last-child {
+            border-bottom: none;
+        }
+        .status-good { color: #00ff00; }
+        .status-warning { color: #ffaa00; }
+        .status-error { color: #ff4444; }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: #00d4ff;
+            color: #000;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            background: #00a8cc;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-bolt"></i>
+            Seyam's Tracker - Diagnostics
+        </div>
+        <div class="status-indicator">
+            <div class="pulse-ring"></div>
+            <span class="status-text">DIAGNOSTICS</span>
+        </div>
+    </header>
+
+    <div class="diagnostics-container">
+        <a href="/" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Tracker
+        </a>
+
+        <h1><i class="fas fa-tools"></i> System Diagnostics</h1>
+
+        <div class="diagnostic-section">
+            <h3><i class="fas fa-globe"></i> Browser Compatibility</h3>
+            <div id="browser-checks"></div>
+        </div>
+
+        <div class="diagnostic-section">
+            <h3><i class="fas fa-map-marker-alt"></i> Location Services</h3>
+            <div id="location-checks"></div>
+            <button onclick="testLocation()" style="margin-top: 15px; padding: 10px 20px; background: #00d4ff; color: #000; border: none; border-radius: 5px; cursor: pointer;">
+                <i class="fas fa-play"></i> Test Location Access
+            </button>
+        </div>
+
+        <div class="diagnostic-section">
+            <h3><i class="fas fa-wifi"></i> Connection Status</h3>
+            <div id="connection-checks"></div>
+        </div>
+
+        <div class="diagnostic-section">
+            <h3><i class="fas fa-cogs"></i> Feature Support</h3>
+            <div id="feature-checks"></div>
+        </div>
+
+        <div class="diagnostic-section">
+            <h3><i class="fas fa-info-circle"></i> System Information</h3>
+            <div id="system-info"></div>
+        </div>
+    </div>
+
+    <script>
+        // Run diagnostics on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            runDiagnostics();
+        });
+
+        function runDiagnostics() {
+            checkBrowserCompatibility();
+            checkLocationServices();
+            checkConnectionStatus();
+            checkFeatureSupport();
+            displaySystemInfo();
+        }
+
+        function checkBrowserCompatibility() {
+            const checks = [
+                { name: 'Geolocation API', check: () => 'geolocation' in navigator },
+                { name: 'Local Storage', check: () => typeof(Storage) !== 'undefined' },
+                { name: 'WebSocket Support', check: () => 'WebSocket' in window },
+                { name: 'Fetch API', check: () => 'fetch' in window },
+                { name: 'ES6 Support', check: () => { try { eval('const test = () => {};'); return true; } catch(e) { return false; } } }
+            ];
+
+            displayChecks('browser-checks', checks);
+        }
+
+        function checkLocationServices() {
+            const checks = [
+                { name: 'Geolocation Available', check: () => 'geolocation' in navigator },
+                { name: 'HTTPS/Localhost', check: () => location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1' },
+                { name: 'Permissions API', check: () => 'permissions' in navigator }
+            ];
+
+            displayChecks('location-checks', checks);
+        }
+
+        function checkConnectionStatus() {
+            const checks = [
+                { name: 'Online Status', check: () => navigator.onLine },
+                { name: 'Connection Type', check: () => navigator.connection ? navigator.connection.effectiveType : 'Unknown' }
+            ];
+
+            displayChecks('connection-checks', checks);
+        }
+
+        function checkFeatureSupport() {
+            const checks = [
+                { name: 'Leaflet.js Library', check: () => typeof L !== 'undefined' },
+                { name: 'Socket.io Library', check: () => typeof io !== 'undefined' },
+                { name: 'Font Awesome Icons', check: () => document.querySelector('.fas') !== null },
+                { name: 'Service Worker', check: () => 'serviceWorker' in navigator }
+            ];
+
+            displayChecks('feature-checks', checks);
+        }
+
+        function displaySystemInfo() {
+            const info = [
+                { name: 'User Agent', value: navigator.userAgent },
+                { name: 'Platform', value: navigator.platform },
+                { name: 'Language', value: navigator.language },
+                { name: 'Screen Resolution', value: `${screen.width}x${screen.height}` },
+                { name: 'Viewport Size', value: `${window.innerWidth}x${window.innerHeight}` },
+                { name: 'Timezone', value: Intl.DateTimeFormat().resolvedOptions().timeZone },
+                { name: 'Current URL', value: window.location.href }
+            ];
+
+            const container = document.getElementById('system-info');
+            container.innerHTML = info.map(item => `
+                <div class="diagnostic-item">
+                    <span><strong>${item.name}:</strong></span>
+                    <span style="max-width: 60%; word-break: break-all; text-align: right;">${item.value}</span>
+                </div>
+            `).join('');
+        }
+
+        function displayChecks(containerId, checks) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = checks.map(check => {
+                let result, status;
+                try {
+                    result = check.check();
+                    if (typeof result === 'boolean') {
+                        status = result ? 'status-good' : 'status-error';
+                        result = result ? '✓ Supported' : '✗ Not Supported';
+                    } else {
+                        status = 'status-good';
+                        result = result || 'Unknown';
+                    }
+                } catch (error) {
+                    result = '✗ Error';
+                    status = 'status-error';
+                }
+
+                return `
+                    <div class="diagnostic-item">
+                        <span>${check.name}</span>
+                        <span class="${status}">${result}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function testLocation() {
+            if ('geolocation' in navigator) {
+                const button = event.target;
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        button.innerHTML = '<i class="fas fa-check"></i> Location Test Successful';
+                        button.style.background = '#00ff00';
+                        
+                        // Add result to location checks
+                        const locationChecks = document.getElementById('location-checks');
+                        locationChecks.innerHTML += `
+                            <div class="diagnostic-item">
+                                <span>Location Test Result</span>
+                                <span class="status-good">✓ Latitude: ${position.coords.latitude.toFixed(6)}, Longitude: ${position.coords.longitude.toFixed(6)}</span>
+                            </div>
+                        `;
+                    },
+                    function(error) {
+                        button.innerHTML = '<i class="fas fa-times"></i> Location Test Failed';
+                        button.style.background = '#ff4444';
+                        
+                        // Add error to location checks
+                        const locationChecks = document.getElementById('location-checks');
+                        locationChecks.innerHTML += `
+                            <div class="diagnostic-item">
+                                <span>Location Test Error</span>
+                                <span class="status-error">✗ ${error.message}</span>
+                            </div>
+                        `;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            }
+        }
+    </script>
+</body>
+</html>

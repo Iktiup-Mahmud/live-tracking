@@ -12,6 +12,10 @@
       "destination": "/public/index.html"
     },
     {
+      "source": "/diagnostics",
+      "destination": "/public/diagnostics.html"
+    },
+    {
       "source": "/health",
       "destination": "/api/index"
     },
