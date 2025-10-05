@@ -1,107 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Live GPS Tracker - Real-time Device Tracking</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <h1><i class="fas fa-satellite-dish"></i> Live GPS Tracker</h1>
-            <p>Real-time device tracking with environmental monitoring</p>
-        </header>
+      <header>
+        <h1><i class="fas fa-satellite-dish"></i> Live GPS Tracker</h1>
+        <p>Real-time device tracking with environmental monitoring</p>
+      </header>
 
-        <div class="controls">
-            <button id="startBtn" class="btn btn-success">
-                <i class="fas fa-play"></i> Start Tracking
-            </button>
-            <button id="stopBtn" class="btn btn-danger" disabled>
-                <i class="fas fa-stop"></i> Stop Tracking
-            </button>
-            <button id="centerBtn" class="btn btn-info">
-                <i class="fas fa-crosshairs"></i> Center Map
-            </button>
-            <button id="toggleView" class="btn btn-secondary">
-                <i class="fas fa-globe"></i> Satellite View
-            </button>
-        </div>
+      <div class="controls">
+        <button id="startBtn" class="btn btn-success">
+          <i class="fas fa-play"></i> Start Tracking
+        </button>
+        <button id="stopBtn" class="btn btn-danger" disabled>
+          <i class="fas fa-stop"></i> Stop Tracking
+        </button>
+        <button id="centerBtn" class="btn btn-info">
+          <i class="fas fa-crosshairs"></i> Center Map
+        </button>
+        <button id="toggleView" class="btn btn-secondary">
+          <i class="fas fa-globe"></i> Satellite View
+        </button>
+      </div>
 
-        <div class="stats-container">
-            <div class="stat-card">
-                <i class="fas fa-clock"></i>
-                <div>
-                    <span class="stat-label">Tracking Time</span>
-                    <span id="trackingTime" class="stat-value">00:00:00</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-tachometer-alt"></i>
-                <div>
-                    <span class="stat-label">Current Speed</span>
-                    <span id="currentSpeed" class="stat-value">0 km/h</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-route"></i>
-                <div>
-                    <span class="stat-label">Distance</span>
-                    <span id="totalDistance" class="stat-value">0.0 km</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-thermometer-half"></i>
-                <div>
-                    <span class="stat-label">Temperature</span>
-                    <span id="temperature" class="stat-value">--°C</span>
-                </div>
-            </div>
+      <div class="stats-container">
+        <div class="stat-card">
+          <i class="fas fa-clock"></i>
+          <div>
+            <span class="stat-label">Tracking Time</span>
+            <span id="trackingTime" class="stat-value">00:00:00</span>
+          </div>
         </div>
+        <div class="stat-card">
+          <i class="fas fa-tachometer-alt"></i>
+          <div>
+            <span class="stat-label">Current Speed</span>
+            <span id="currentSpeed" class="stat-value">0 km/h</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-route"></i>
+          <div>
+            <span class="stat-label">Distance</span>
+            <span id="totalDistance" class="stat-value">0.0 km</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-thermometer-half"></i>
+          <div>
+            <span class="stat-label">Temperature</span>
+            <span id="temperature" class="stat-value">--°C</span>
+          </div>
+        </div>
+      </div>
 
-        <div class="map-container">
-            <div id="map"></div>
-            <div id="coordinates">
-                <i class="fas fa-map-marker-alt"></i>
-                <span id="coordText">Click "Start Tracking" to see your location</span>
-            </div>
+      <div class="map-container">
+        <div id="map"></div>
+        <div id="coordinates">
+          <i class="fas fa-map-marker-alt"></i>
+          <span id="coordText"
+            >Click "Start Tracking" to see your location</span
+          >
         </div>
+      </div>
 
-        <div class="info-section">
-            <h3><i class="fas fa-info-circle"></i> Environmental Data</h3>
-            <div class="environmental-grid">
-                <div class="env-item">
-                    <i class="fas fa-tint"></i>
-                    <span>Humidity: <strong id="humidity">--%</strong></span>
-                </div>
-                <div class="env-item">
-                    <i class="fas fa-compress-arrows-alt"></i>
-                    <span>Pressure: <strong id="pressure">-- hPa</strong></span>
-                </div>
-                <div class="env-item">
-                    <i class="fas fa-wind"></i>
-                    <span>Wind: <strong id="windSpeed">-- km/h</strong></span>
-                </div>
-                <div class="env-item">
-                    <i class="fas fa-eye"></i>
-                    <span>Visibility: <strong id="visibility">-- km</strong></span>
-                </div>
-            </div>
+      <div class="info-section">
+        <h3><i class="fas fa-info-circle"></i> Environmental Data</h3>
+        <div class="environmental-grid">
+          <div class="env-item">
+            <i class="fas fa-tint"></i>
+            <span>Humidity: <strong id="humidity">--%</strong></span>
+          </div>
+          <div class="env-item">
+            <i class="fas fa-compress-arrows-alt"></i>
+            <span>Pressure: <strong id="pressure">-- hPa</strong></span>
+          </div>
+          <div class="env-item">
+            <i class="fas fa-wind"></i>
+            <span>Wind: <strong id="windSpeed">-- km/h</strong></span>
+          </div>
+          <div class="env-item">
+            <i class="fas fa-eye"></i>
+            <span>Visibility: <strong id="visibility">-- km</strong></span>
+          </div>
         </div>
+      </div>
 
-        <div class="status-section">
-            <div id="status" class="status ready">
-                <i class="fas fa-check-circle"></i>
-                <span>Ready to track</span>
-            </div>
+      <div class="status-section">
+        <div id="status" class="status ready">
+          <i class="fas fa-check-circle"></i>
+          <span>Ready to track</span>
         </div>
+      </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="/js/script.js"></script>
-</body>
+  </body>
 </html>
