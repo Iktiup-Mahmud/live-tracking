@@ -3,6 +3,7 @@ import { createServer } from "http";
 import path from "path";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import DatabaseService from "./services/DatabaseService.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -149,6 +150,24 @@ class EnvironmentalService {
 
 const environmentalService = new EnvironmentalService();
 
+// Initialize Database Connection
+async function initializeDatabase() {
+    try {
+        await DatabaseService.connect();
+        console.log('🗄️ Database service initialized');
+        
+        // Log database stats on startup
+        const stats = await DatabaseService.getDatabaseStats();
+        console.log('📊 Database Stats:', stats);
+    } catch (error) {
+        console.error('❌ Database initialization failed:', error);
+        console.log('⚠️ App will continue without database logging');
+    }
+}
+
+// Initialize database
+initializeDatabase();
+
 
 
 app.get("/", (req, res) => 
@@ -156,8 +175,82 @@ app.get("/", (req, res) =>
     res.render("index")
 );
 
-io.on('connection', (socket) => {
+// Diagnostics page for troubleshooting
+app.get("/diagnostics", (req, res) => {
+    res.render("diagnostics");
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        database: DatabaseService.isConnected ? "connected" : "disconnected",
+        weather_api: process.env.OPENWEATHER_API_KEY ? "configured" : "not_configured"
+    });
+});
+
+// Admin dashboard to view database stats
+app.get("/admin", async (req, res) => {
+    try {
+        if (!DatabaseService.isConnected) {
+            return res.json({ error: 'Database not connected' });
+        }
+
+        const stats = await DatabaseService.getDatabaseStats();
+        const activeSessions = await DatabaseService.getActiveSessions();
+        
+        res.json({
+            success: true,
+            stats,
+            activeSessions: activeSessions.map(session => ({
+                sessionId: session.sessionId,
+                connectionTime: session.connectionTime,
+                deviceInfo: session.deviceInfo,
+                isActive: session.isActive
+            }))
+        });
+    } catch (error) {
+        console.error('Error getting admin data:', error);
+        res.status(500).json({ error: 'Failed to get admin data' });
+    }
+});
+
+// API endpoint to get session details
+app.get("/api/session/:sessionId", async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const sessionStats = await DatabaseService.getSessionStats(sessionId);
+        
+        if (!sessionStats) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+        
+        res.json(sessionStats);
+    } catch (error) {
+        console.error('Error getting session data:', error);
+        res.status(500).json({ error: 'Failed to get session data' });
+    }
+});
+
+io.on('connection', async (socket) => {
     console.log('A user connected:', socket.id);
+    
+    try {
+        // Get user information
+        const userAgent = socket.handshake.headers['user-agent'];
+        const ipAddress = socket.handshake.address || socket.conn.remoteAddress;
+        
+        // Create user session in database
+        const sessionId = await DatabaseService.createUserSession(socket.id, userAgent, ipAddress);
+        
+        // Store session ID in socket for later use
+        socket.sessionId = sessionId;
+        
+        console.log(`👤 User session logged: ${sessionId}`);
+    } catch (error) {
+        console.error('❌ Error logging user connection:', error);
+    }
     
     // Handle location updates with environmental data
     socket.on('locationUpdate', async (locationData) => {
@@ -169,6 +262,11 @@ io.on('connection', (socket) => {
                 locationData.latitude, 
                 locationData.longitude
             );
+            
+            // Log location data to database
+            if (DatabaseService.isConnected) {
+                await DatabaseService.logLocationData(socket.id, locationData, environmentalData);
+            }
             
             // Combine location and environmental data
             const enhancedLocationData = {
@@ -214,6 +312,18 @@ io.on('connection', (socket) => {
             socket.emit('environmental-data-error', { message: 'Failed to fetch environmental data' });
         }
     });
+
+    // Handle feature usage logging
+    socket.on('feature-used', async (featureData) => {
+        try {
+            if (DatabaseService.isConnected) {
+                await DatabaseService.logFeatureUsage(socket.id, featureData.feature);
+            }
+            console.log(`🎛️ Feature used: ${featureData.feature} by ${socket.id}`);
+        } catch (error) {
+            console.error('Error logging feature usage:', error);
+        }
+    });
     
     // Handle device connection
     socket.on('device-connected', (deviceInfo) => {
@@ -233,8 +343,18 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('device-status-update', { socketId: socket.id, ...statusData });
     });
     
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         console.log('User disconnected:', socket.id);
+        
+        try {
+            // End user session in database
+            if (DatabaseService.isConnected) {
+                await DatabaseService.endUserSession(socket.id);
+            }
+        } catch (error) {
+            console.error('❌ Error logging user disconnection:', error);
+        }
+        
         socket.broadcast.emit('user-disconnected', socket.id);
     });
 });

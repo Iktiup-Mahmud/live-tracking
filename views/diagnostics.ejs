@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seyam's Tracker - Diagnostics</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+      .diagnostic-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: rgba(26, 26, 26, 0.95);
+        border-radius: 12px;
+        border: 2px solid rgba(255, 179, 71, 0.25);
+      }
+      .diagnostic-item {
+        background: rgba(45, 45, 45, 0.6);
+        border: 1px solid rgba(255, 179, 71, 0.15);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .status-pass {
+        color: #4caf50;
+      }
+      .status-fail {
+        color: #f44336;
+      }
+      .status-warning {
+        color: #ff9800;
+      }
+      .solution-box {
+        background: rgba(0, 212, 255, 0.05);
+        border-left: 3px solid #00d4ff;
+        padding: 1rem;
+        margin-top: 1rem;
+        border-radius: 0 8px 8px 0;
+      }
+      .back-btn {
+        background: linear-gradient(135deg, #ffb347, #ffc274);
+        color: #1a1a1a;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo">
+        <i class="fas fa-bolt"></i>
+        Seyam's Tracker - Diagnostics
+      </div>
+    </header>
+
+    <div class="diagnostic-container">
+      <a href="/" class="back-btn">← Back to Tracker</a>
+
+      <h2 style="color: #ffb347; margin-bottom: 1.5rem">System Diagnostics</h2>
+
+      <div id="diagnostic-results">
+        <div class="diagnostic-item">
+          <span>🔄 Running diagnostics...</span>
+          <span class="status-warning">CHECKING</span>
+        </div>
+      </div>
+
+      <div id="solutions" style="display: none">
+        <h3 style="color: #ffb347; margin-top: 2rem">Troubleshooting Guide</h3>
+
+        <div class="solution-box">
+          <h4 style="color: #00d4ff">🔒 Location Permission Issues</h4>
+          <ol style="color: #e0e0e0; margin-top: 0.5rem">
+            <li>Click the location icon in your browser's address bar</li>
+            <li>Select "Always allow" for location access</li>
+            <li>Refresh the page and try again</li>
+            <li>
+              In Chrome: Settings → Privacy and security → Site Settings →
+              Location
+            </li>
+            <li>Make sure GPS/Location Services are enabled on your device</li>
+          </ol>
+        </div>
+
+        <div class="solution-box">
+          <h4 style="color: #00d4ff">🌐 HTTPS/Security Issues</h4>
+          <ol style="color: #e0e0e0; margin-top: 0.5rem">
+            <li>Access the app via HTTPS (https://your-domain.com)</li>
+            <li>Or use localhost for development (http://localhost:3000)</li>
+            <li>Modern browsers require secure context for geolocation</li>
+            <li>If using a custom domain, ensure SSL certificate is valid</li>
+          </ol>
+        </div>
+
+        <div class="solution-box">
+          <h4 style="color: #00d4ff">📱 Mobile Device Issues</h4>
+          <ol style="color: #e0e0e0; margin-top: 0.5rem">
+            <li>Enable Location Services in device settings</li>
+            <li>Allow browser to access location in app permissions</li>
+            <li>Try moving to an area with better GPS signal</li>
+            <li>Restart the browser app and try again</li>
+          </ol>
+        </div>
+      </div>
+
+      <div
+        style="
+          margin-top: 2rem;
+          padding: 1rem;
+          background: rgba(255, 179, 71, 0.06);
+          border-radius: 8px;
+        "
+      >
+        <h4 style="color: #ffb347">Environment Information</h4>
+        <div
+          id="env-info"
+          style="font-family: monospace; font-size: 0.9rem; color: #e0e0e0"
+        >
+          Loading...
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        runDiagnostics();
+        showEnvironmentInfo();
+      });
+
+      function runDiagnostics() {
+        const diagnostics = [
+          { name: "Leaflet Library", check: () => typeof L !== "undefined" },
+          { name: "Socket.io Library", check: () => typeof io !== "undefined" },
+          {
+            name: "Geolocation API",
+            check: () => navigator.geolocation !== undefined,
+          },
+          {
+            name: "HTTPS/Localhost",
+            check: () =>
+              location.protocol === "https:" ||
+              location.hostname === "localhost" ||
+              location.hostname === "127.0.0.1",
+          },
+          {
+            name: "Local Storage",
+            check: () => typeof localStorage !== "undefined",
+          },
+          {
+            name: "WebSocket Support",
+            check: () => typeof WebSocket !== "undefined",
+          },
+        ];
+
+        const resultsContainer = document.getElementById("diagnostic-results");
+        resultsContainer.innerHTML = "";
+
+        let allPassed = true;
+
+        diagnostics.forEach((test) => {
+          const result = test.check();
+          if (!result) allPassed = false;
+
+          const div = document.createElement("div");
+          div.className = "diagnostic-item";
+          div.innerHTML = `
+                    <span>${test.name}</span>
+                    <span class="status-${result ? "pass" : "fail"}">
+                        ${result ? "✅ PASS" : "❌ FAIL"}
+                    </span>
+                `;
+          resultsContainer.appendChild(div);
+        });
+
+        // Show solutions if any tests failed
+        if (!allPassed) {
+          document.getElementById("solutions").style.display = "block";
+        }
+
+        // Test location permissions
+        if (navigator.geolocation) {
+          navigator.permissions
+            ?.query({ name: "geolocation" })
+            .then((result) => {
+              const div = document.createElement("div");
+              div.className = "diagnostic-item";
+              div.innerHTML = `
+                        <span>Location Permission</span>
+                        <span class="status-${
+                          result.state === "granted"
+                            ? "pass"
+                            : result.state === "denied"
+                            ? "fail"
+                            : "warning"
+                        }">
+                            ${result.state.toUpperCase()}
+                        </span>
+                    `;
+              resultsContainer.appendChild(div);
+            })
+            .catch(() => {
+              // Permissions API not supported
+            });
+        }
+      }
+
+      function showEnvironmentInfo() {
+        const info = {
+          Protocol: location.protocol,
+          Hostname: location.hostname,
+          Port: location.port || "default",
+          "User Agent": navigator.userAgent.substring(0, 80) + "...",
+          Platform: navigator.platform,
+          Language: navigator.language,
+          Online: navigator.onLine ? "Yes" : "No",
+          "Cookies Enabled": navigator.cookieEnabled ? "Yes" : "No",
+        };
+
+        const envContainer = document.getElementById("env-info");
+        envContainer.innerHTML = Object.entries(info)
+          .map(([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`)
+          .join("");
+      }
+
+      // Test location access
+      function testLocation() {
+        const testBtn = document.createElement("button");
+        testBtn.textContent = "Test Location Access";
+        testBtn.className = "back-btn";
+        testBtn.style.marginTop = "1rem";
+        testBtn.onclick = () => {
+          testBtn.textContent = "Testing...";
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              testBtn.textContent = "✅ Location Test Passed";
+              testBtn.style.background =
+                "linear-gradient(135deg, #4caf50, #66bb6a)";
+              alert(
+                `Location test successful!\nLatitude: ${position.coords.latitude}\nLongitude: ${position.coords.longitude}\nAccuracy: ${position.coords.accuracy}m`
+              );
+            },
+            (error) => {
+              testBtn.textContent = "❌ Location Test Failed";
+              testBtn.style.background =
+                "linear-gradient(135deg, #f44336, #ef5350)";
+              alert(`Location test failed: ${error.message}`);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        };
+        document.querySelector(".diagnostic-container").appendChild(testBtn);
+      }
+
+      setTimeout(testLocation, 1000);
+    </script>
+  </body>
+</html>

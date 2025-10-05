@@ -317,6 +317,24 @@ class LightningTracker {
                     console.error('❌ Error processing location response:', error);
                 }
             });
+
+            // Listen for other users' location updates and update the map
+            this.socket.on('user-location-update', (data) => {
+                try {
+                    // Only update if not this user's own socket
+                    if (data.socketId !== this.socket.id) {
+                        // Optionally, show other users on the map
+                        this.updateMap(data.latitude, data.longitude);
+                        this.updateDisplay(data.latitude, data.longitude, data.accuracy, data.speed, data.altitude);
+                        if (data.environmental) {
+                            this.updateEnvironmentalData(data.environmental);
+                        }
+                        this.showNotification('📍 Another user location received', 'info');
+                    }
+                } catch (error) {
+                    console.error('❌ Error processing user location update:', error);
+                }
+            });
         }
         
         // Add window resize handler
@@ -357,11 +375,41 @@ class LightningTracker {
     }
 
     startTracking() {
-        if (!navigator.geolocation) {
-            this.showNotification('❌ Geolocation not supported by this browser', 'error');
+        // Check for HTTPS/localhost requirement first
+        if (location.protocol !== 'https:' && 
+            location.hostname !== 'localhost' && 
+            location.hostname !== '127.0.0.1') {
+            this.showNotification('❌ Location access requires HTTPS or localhost', 'error');
+            this.updateStatus('HTTPS REQUIRED');
             return;
         }
 
+        if (!navigator.geolocation) {
+            this.showNotification('❌ Geolocation not supported by this browser', 'error');
+            this.updateStatus('GEOLOCATION UNAVAILABLE');
+            return;
+        }
+
+        // Check location permissions explicitly
+        if (navigator.permissions) {
+            navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+                console.log('🔒 Geolocation permission status:', result.state);
+                if (result.state === 'denied') {
+                    this.showNotification('❌ Location permission denied. Please enable in browser settings.', 'error');
+                    this.updateStatus('PERMISSION DENIED');
+                    return;
+                }
+                this.startTrackingInternal();
+            }).catch(() => {
+                // Fallback for browsers without permissions API
+                this.startTrackingInternal();
+            });
+        } else {
+            this.startTrackingInternal();
+        }
+    }
+
+    startTrackingInternal() {
         this.isTracking = true;
         this.startTime = Date.now();
         this.updateCount = 0;
@@ -373,15 +421,22 @@ class LightningTracker {
         this.updateStatus('INITIALIZING GPS...');
         this.updateButton('.track-btn', '<i class="fas fa-stop"></i> STOP TRACKING', 'active');
         
+        // Log feature usage
+        this.logFeatureUsage('startTracking');
+        
         const options = {
             enableHighAccuracy: true,
-            timeout: 30000,
-            maximumAge: 10000
+            timeout: 15000, // Reduced timeout for faster response
+            maximumAge: 5000  // Reduced cache time for more accurate location
         };
+
+        // Show requesting permission message
+        this.showNotification('📍 Requesting location permission...', 'info');
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 console.log('✅ Initial position acquired');
+                this.showNotification('✅ Location access granted!', 'success');
                 this.handleLocationUpdate(position);
                 
                 // Start watching position
@@ -415,12 +470,24 @@ class LightningTracker {
         
         this.updateStatus('TRACKING STOPPED');
         this.updateButton('.track-btn', '<i class="fas fa-play"></i> START TRACKING', '');
+        
+        // Log feature usage
+        this.logFeatureUsage('stopTracking');
+        
         this.showNotification('🛑 Tracking stopped', 'info');
         
         // Stop environmental updates
         this.stopEnvironmentalUpdates();
         
         console.log('📍 Tracking stopped. Total updates:', this.updateCount);
+    }
+
+    // Log feature usage to server
+    logFeatureUsage(feature) {
+        if (this.socket) {
+            this.socket.emit('feature-used', { feature });
+            console.log(`🎛️ Feature logged: ${feature}`);
+        }
     }
 
     handleLocationUpdate(position) {
@@ -476,28 +543,64 @@ class LightningTracker {
         
         let errorMessage = 'GPS ERROR';
         let notificationMessage = '❌ Location error occurred';
+        let solutions = [];
         
         switch(error.code) {
             case error.PERMISSION_DENIED:
                 errorMessage = 'PERMISSION DENIED';
-                notificationMessage = '❌ Location access denied. Please enable location permissions.';
+                notificationMessage = '❌ Location access denied.';
+                solutions = [
+                    '1. Click the location icon in your browser address bar',
+                    '2. Select "Always allow" for location access',
+                    '3. Refresh the page and try again',
+                    '4. Check browser settings: Privacy → Location Services'
+                ];
                 break;
             case error.POSITION_UNAVAILABLE:
                 errorMessage = 'POSITION UNAVAILABLE';
                 notificationMessage = '❌ Location information unavailable.';
+                solutions = [
+                    '1. Make sure GPS/Location Services are enabled on your device',
+                    '2. Try moving to an area with better signal',
+                    '3. Restart your browser',
+                    '4. Check if other location apps work on your device'
+                ];
                 break;
             case error.TIMEOUT:
                 errorMessage = 'TIMEOUT';
                 notificationMessage = '❌ Location request timed out.';
+                solutions = [
+                    '1. Try again - GPS may need time to acquire signal',
+                    '2. Move closer to a window or go outside',
+                    '3. Restart location services on your device',
+                    '4. Clear browser cache and cookies'
+                ];
                 break;
             default:
                 errorMessage = 'GPS ERROR';
                 notificationMessage = `❌ Location error: ${error.message}`;
+                solutions = [
+                    '1. Refresh the page and try again',
+                    '2. Check your internet connection',
+                    '3. Try using a different browser',
+                    '4. Contact support if problem persists'
+                ];
                 break;
         }
         
         this.updateStatus(errorMessage);
         this.showNotification(notificationMessage, 'error');
+        
+        // Log detailed solutions to console for debugging
+        console.log('🔧 Troubleshooting steps:');
+        solutions.forEach(solution => console.log(`   ${solution}`));
+        
+        // Show permission instructions if permission denied
+        if (error.code === error.PERMISSION_DENIED) {
+            setTimeout(() => {
+                this.showNotification('💡 Enable location in browser settings and refresh page', 'warning');
+            }, 3000);
+        }
         
         // Reset tracking state
         this.isTracking = false;
@@ -566,6 +669,9 @@ class LightningTracker {
             this.updateButton('.satellite-btn', '<i class="fas fa-satellite"></i> SATELLITE VIEW', '');
         }
         
+        // Log feature usage
+        this.logFeatureUsage('satelliteView');
+        
         this.showNotification(`🛰️ Switched to ${this.isSatelliteView ? 'satellite' : 'standard'} view`, 'info');
     }
 
@@ -579,6 +685,10 @@ class LightningTracker {
         
         const btnText = this.showTrail ? '<i class="fas fa-eye-slash"></i> HIDE TRAIL' : '<i class="fas fa-route"></i> SHOW TRAIL';
         this.updateButton('.trail-btn', btnText, this.showTrail ? 'active' : '');
+        
+        // Log feature usage
+        this.logFeatureUsage('trailMode');
+        
         this.showNotification(`🛤️ Trail ${this.showTrail ? 'enabled' : 'disabled'}`, 'info');
     }
 
@@ -811,7 +921,8 @@ class LightningTracker {
             { name: 'Map Container', check: () => document.getElementById('map') !== null, result: null },
             { name: 'Map Object', check: () => this.map !== null, result: null },
             { name: 'Geolocation API', check: () => navigator.geolocation !== undefined, result: null },
-            { name: 'HTTPS/Localhost', check: () => location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1', result: null }
+            { name: 'HTTPS/Localhost', check: () => location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1', result: null },
+            { name: 'Location Permissions', check: () => this.checkLocationPermissions(), result: null }
         ];
         
         let allPassed = true;
@@ -828,16 +939,43 @@ class LightningTracker {
             }
         });
         
+        // Additional environment checks
+        console.log('🌐 Environment Info:');
+        console.log(`   Protocol: ${location.protocol}`);
+        console.log(`   Host: ${location.hostname}`);
+        console.log(`   User Agent: ${navigator.userAgent.substring(0, 100)}...`);
+        console.log(`   Platform: ${navigator.platform}`);
+        console.log(`   Language: ${navigator.language}`);
+        
         if (allPassed) {
             console.log('🎉 All diagnostics passed! System is fully operational.');
+            this.showNotification('✅ System diagnostic: All checks passed!', 'success');
             this.addDebugFunctions();
         } else {
             console.error('🚨 Some diagnostics failed. Check the issues above.');
             const failedTests = diagnostics.filter(t => !t.result).map(t => t.name);
             console.error('❌ Failed tests:', failedTests.join(', '));
+            this.showNotification(`⚠️ System issues detected: ${failedTests.join(', ')}`, 'warning');
+            
+            // Provide specific guidance
+            if (failedTests.includes('HTTPS/Localhost')) {
+                console.log('💡 Solution: Access via HTTPS or localhost for geolocation to work');
+                this.showNotification('💡 Use HTTPS or localhost for location access', 'warning');
+            }
+            if (failedTests.includes('Geolocation API')) {
+                console.log('💡 Solution: Update to a modern browser with geolocation support');
+            }
         }
         
         return allPassed;
+    }
+    
+    checkLocationPermissions() {
+        // This is a basic check - actual permission check happens during geolocation request
+        return navigator.geolocation !== undefined && 
+               (location.protocol === 'https:' || 
+                location.hostname === 'localhost' || 
+                location.hostname === '127.0.0.1');
     }
     
     addDebugFunctions() {
@@ -886,6 +1024,14 @@ class LightningTracker {
             console.log('✅ Map resized');
         } else {
             console.error('❌ Map not initialized');
+        }
+    }
+
+    // Log feature usage to server
+    logFeatureUsage(feature) {
+        if (this.socket) {
+            this.socket.emit('feature-used', { feature });
+            console.log(`🎛️ Feature logged: ${feature}`);
         }
     }
 }
