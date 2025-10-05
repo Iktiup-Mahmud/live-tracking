@@ -1,17 +1,22 @@
 {
   "name": "realtime_device_tracking",
   "version": "1.0.0",
-  "description": "",
+  "description": "Real-time GPS tracking application with environmental monitoring",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "node app.js",
+    "build": "echo 'Build completed'",
+    "vercel-build": "echo 'Vercel build completed'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["gps", "tracking", "realtime", "websocket", "weather"],
+  "author": "Iktiup Mahmud",
   "license": "ISC",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "dotenv": "^17.2.3",
     "ejs": "^3.1.10",

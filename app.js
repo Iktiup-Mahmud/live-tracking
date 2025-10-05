@@ -359,8 +359,14 @@ io.on('connection', async (socket) => {
     });
 });
 
-server.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-});
+// Export for Vercel serverless functions
+export default app;
+
+// Start server for local development
+if (process.env.NODE_ENV !== 'production') {
+    server.listen(port, () => {
+        console.log(`Server listening on port ${port}`);
+    });
+}
 
 
